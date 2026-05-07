@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+
+hf-cache/
+pgdata/
+
+*.log
+.DS_Store

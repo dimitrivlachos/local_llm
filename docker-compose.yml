@@ -1,0 +1,68 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:v0.20.1-aarch64-cu129-ubuntu2404
+    restart: unless-stopped
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ./hf-cache:/root/.cache/huggingface
+    environment:
+      HF_TOKEN: ${HF_TOKEN}
+    command: >
+      --model Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8
+      --served-model-name qwen3-coder
+      --api-key ${VLLM_UPSTREAM_KEY}
+      --host 0.0.0.0 --port 8000
+      --max-model-len 65536
+      --gpu-memory-utilization 0.92
+      --enable-auto-tool-choice
+      --tool-call-parser hermes
+      --enable-prefix-caching
+      --kv-cache-dtype fp8
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 15s
+      timeout: 5s
+      retries: 40
+      start_period: 120s
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: litellm
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm -d litellm"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    restart: unless-stopped
+    depends_on:
+      vllm:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY}
+      VLLM_UPSTREAM_KEY: ${VLLM_UPSTREAM_KEY}
+      DATABASE_URL: postgresql://litellm:${PG_PASSWORD}@postgres:5432/litellm
+      STORE_MODEL_IN_DB: "True"
+    volumes:
+      - ./litellm.yaml:/app/config.yaml:ro
+    command: --config /app/config.yaml --port 4000

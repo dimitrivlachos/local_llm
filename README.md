@@ -115,9 +115,3 @@ rm -rf pgdata/ hf-cache/
 # update vLLM — bump the pinned tag in docker-compose.yml, then:
 docker compose pull vllm && docker compose up -d vllm
 ```
-
-## Security
-
-- Only port `4000` is published. vLLM and Postgres are reachable only on the internal Docker network.
-- The master key bootstraps the proxy; treat it like a root password. Use virtual keys for clients.
-- Rotate keys by editing `.env`, then `docker compose up -d` to restart with the new values. Existing virtual keys survive (they live in Postgres) as long as `LITELLM_SALT_KEY` does not change — rotating the salt invalidates encrypted-at-rest secrets.

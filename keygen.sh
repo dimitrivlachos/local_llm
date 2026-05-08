@@ -32,6 +32,12 @@ read -rp "TPM limit  [1000000]: " TPM;  TPM="${TPM:-1000000}"
 #     120 — if you use opencode in agentic/auto mode heavily
 read -rp "RPM limit  [60]:      " RPM;  RPM="${RPM:-60}"
 
+# max_budget — daily token quota expressed in dollars (using dummy $0.000001/token pricing)
+#   $1  = ~1M  tokens/day  — light use
+#   $5  = ~5M  tokens/day  — comfortable default
+#   $20 = ~20M tokens/day  — heavy agentic/multi-file sessions
+read -rp "Daily budget \$ [5]:   " BUDGET; BUDGET="${BUDGET:-5}"
+
 RESPONSE=$(curl -sf -X POST "$LITELLM_URL/key/generate" \
   -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
   -H "Content-Type: application/json" \
@@ -39,7 +45,9 @@ RESPONSE=$(curl -sf -X POST "$LITELLM_URL/key/generate" \
     \"models\": [\"qwen3-coder\"],
     \"key_alias\": \"$ALIAS\",
     \"tpm_limit\": $TPM,
-    \"rpm_limit\": $RPM
+    \"rpm_limit\": $RPM,
+    \"max_budget\": $BUDGET,
+    \"budget_duration\": \"1d\"
   }")
 
 KEY=$(echo "$RESPONSE" | grep -o '"key":"[^"]*"' | cut -d'"' -f4)

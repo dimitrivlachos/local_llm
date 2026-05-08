@@ -14,9 +14,9 @@ services:
       - ./hf-cache:/root/.cache/huggingface
     environment:
       HF_TOKEN: ${HF_TOKEN}
-    # Smaller model: Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8
+    # Larger model to try: Qwen/Qwen3-Coder-Next-FP8
     command: >
-      --model Qwen/Qwen3-Coder-Next-FP8
+      --model Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8
       --served-model-name qwen3-coder
       --api-key ${VLLM_UPSTREAM_KEY}
       --host 0.0.0.0 --port 8000

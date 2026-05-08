@@ -4,7 +4,7 @@ Self-hosted Qwen3-Coder behind a LiteLLM proxy, designed for use with opencode (
 
 ## Stack
 
-- **vLLM** serves `Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8` on the internal Docker network only (no host port).
+- **vLLM** serves `Qwen/Qwen3-Coder-Next-FP8` on the internal Docker network only (no host port).
 - **LiteLLM** is the only externally-exposed service (`:4000`). It handles per-user virtual API keys, request logging, and budgets, persisting them to Postgres.
 - **Postgres 16** stores LiteLLM's keys, spend, and model config.
 
@@ -16,7 +16,7 @@ opencode --(sk-user-…)--> :4000 LiteLLM --(VLLM_UPSTREAM_KEY)--> vllm:8000
 ## Prerequisites
 
 
-- A Hugging Face token with access to `Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8`
+- A Hugging Face token with access to `Qwen/Qwen3-Coder-Next-FP8`
 
 ## First-time setup
 
@@ -37,7 +37,7 @@ opencode --(sk-user-…)--> :4000 LiteLLM --(VLLM_UPSTREAM_KEY)--> vllm:8000
    docker compose up -d
    docker compose logs -f vllm
    ```
-   First boot pulls ~30 GB of FP8 weights into `./hf-cache/`. The vLLM healthcheck has a 120 s start period; LiteLLM waits for it before starting.
+   First boot pulls ~76 GB of FP8 weights into `./hf-cache/`. The vLLM healthcheck has a 120 s start period; LiteLLM waits for it before starting.
 
 3. Sanity check once healthy:
    ```bash
@@ -55,10 +55,36 @@ curl -X POST http://localhost:4000/key/generate \
   -d '{"models":["qwen3-coder"],"key_alias":"opencode","max_budget":100}'
 ```
 
-Configure opencode with an OpenAI-compatible provider:
-- baseURL: `http://<host>:4000/v1`
-- apiKey: the returned `sk-…` virtual key
-- model: `qwen3-coder`
+Configure opencode by creating `~/.config/opencode/config.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "grace": {
+      "name": "Grace Hopper",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://<host>:4000/v1",
+        "apiKey": "sk-..."
+      },
+      "models": {
+        "qwen3-coder": {
+          "id": "qwen3-coder",
+          "name": "Qwen3 Coder",
+          "tool_call": true,
+          "temperature": true,
+          "limit": {
+            "context": 65536,
+            "output": 16384
+          }
+        }
+      }
+    }
+  },
+  "model": "grace/qwen3-coder"
+}
+```
 
 ## Files
 

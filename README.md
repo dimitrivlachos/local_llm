@@ -13,11 +13,6 @@ opencode --(sk-user-…)--> :4000 LiteLLM --(VLLM_UPSTREAM_KEY)--> vllm:8000
                               └──> postgres:5432
 ```
 
-## Prerequisites
-
-
-- A Hugging Face token with access to `Qwen/Qwen3-Coder-Next-FP8`
-
 ## First-time setup
 
 1. Copy the env template and fill in your HF token. The other secrets are pre-generated:
